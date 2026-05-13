@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/TUES-2026-PBL-11-klas/The-four-horsemen-of-coding-StaffordChess.git
-    targetRevision: infrastructure
+    targetRevision: Infrastructure
     path: k8s/observability/prometheus
   destination:
     server: https://kubernetes.default.svc
