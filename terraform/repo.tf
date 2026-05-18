@@ -1,5 +1,5 @@
 resource "github_repository" "chess_app" {
-  name = "The-four-horsemen-of-coding-StaffordChess"
+  name = "the-four-horsemen-of-coding-StaffordChess"
   description = "Python + FastAPI chess application"
   visibility  = "public"
 
