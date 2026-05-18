@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stafford-chess-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: stafford-chess
+spec:
+  project: default
+ 
+  source:
+    repoURL: https://github.com/TUES-2026-PBL-11-klas/the-four-horsemen-of-coding-StaffordChess.git
+    targetRevision: Infrastructure
+    path: k8s/ArgoCD_apps
+ 
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+ 
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

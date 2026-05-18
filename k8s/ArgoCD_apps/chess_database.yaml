@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stafford-chess-database
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: stafford-chess
+    tier: database
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: stafford-chess
+ 
+  source:
+    repoURL: https://github.com/TUES-2026-PBL-11-klas/the-four-horsemen-of-coding-StaffordChess.git
+    targetRevision: Infrastructure
+    path: k8s/database
+ 
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
+ 
+  syncPolicy:
+
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+ 
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/replicas
