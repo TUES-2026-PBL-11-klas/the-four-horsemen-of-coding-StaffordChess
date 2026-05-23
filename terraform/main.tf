@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/vault"
       version = "~> 3.0"
     }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 
@@ -22,4 +26,10 @@ provider "github" {
 data "vault_kv_secret_v2" "terraform_secrets" {
   mount = "secret"
   name  = "terraform"
+}
+
+provider "aws" {
+  region     = "eu-central-1"
+  access_key = data.vault_kv_secret_v2.terraform_secrets.data["Stafford_aws_access_key"]
+  secret_key = data.vault_kv_secret_v2.terraform_secrets.data["Stafford_aws_secret_key"]
 }

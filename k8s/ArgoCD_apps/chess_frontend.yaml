@@ -10,8 +10,8 @@ spec:
   project: stafford-chess
 
   source:
-    repoURL: https://github.com/<your-org>/stafford-chess
-    targetRevision: main
+    repoURL: https://github.com/TUES-2026-PBL-11-klas/the-four-horsemen-of-coding-StaffordChess.git
+    targetRevision: Infrastructure
     path: k8s/frontend
 
   destination:
