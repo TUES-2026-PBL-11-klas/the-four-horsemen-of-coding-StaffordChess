@@ -9,3 +9,9 @@ resource "github_actions_secret" "docker_password" {
   secret_name     = "DOCKER_PASSWORD"
   value = data.vault_kv_secret_v2.terraform_secrets.data["Stafford_docker_password"]
 }
+
+resource "github_actions_secret" "github_token" {
+  repository      = github_repository.chess_app.name
+  secret_name     = "GITHUB_TOKEN"
+  value = data.vault_kv_secret_v2.terraform_secrets.data["Stafford_github_token"]
+}

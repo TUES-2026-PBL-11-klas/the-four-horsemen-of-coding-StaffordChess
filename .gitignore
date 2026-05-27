@@ -221,6 +221,9 @@ __marimo__/
 ChessApp.venv/
 
 
+
 #Terraform
 *.tfstate
 *.tfstate.backup
+*.terraform.lock.hcl
+.terraform/
