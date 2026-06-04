@@ -5,13 +5,14 @@ from app.domain.color import Color
 
 
 class Piece(ABC):
-
+    color: Color
+    has_moved: bool
     def __init__(self, color: Color):
         self.color = color
         self.has_moved = False
 
     @abstractmethod
-    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int]]:
+    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, ...]]:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def get_piece_type(self) -> str:
@@ -51,15 +52,15 @@ class Pawn(Piece):
 
 class Rook(Piece):
 
-    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int]]:
+    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int, int, int]]:
         moves = []
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        for dr, dc in directions:
+        for d_row, d_col in directions:
             for i in range(1, 8):
-                new_row = position[0] + dr * i
-                new_col = position[1] + dc * i
+                new_row = position[0] + d_row * i
+                new_col = position[1] + d_col * i
                 if 0 <= new_row < 8 and 0 <= new_col < 8:
-                    moves.append((new_row, new_col))
+                    moves.append((new_row, new_col, d_row, d_col))
                 else:
                     break
         return moves
@@ -71,9 +72,9 @@ class Knight(Piece):
         moves = []
         offsets = [(2, 1), (2, -1), (-2, 1), (-2, -1),
                    (1, 2), (1, -2), (-1, 2), (-1, -2)]
-        for dr, dc in offsets:
-            new_row = position[0] + dr
-            new_col = position[1] + dc
+        for d_row, d_col in offsets:
+            new_row = position[0] + d_row
+            new_col = position[1] + d_col
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 moves.append((new_row, new_col))
         return moves
@@ -81,15 +82,15 @@ class Knight(Piece):
 
 class Bishop(Piece):
 
-    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int]]:
+    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int, int, int]]:
         moves = []
         directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-        for dr, dc in directions:
+        for d_row, d_col in directions:
             for i in range(1, 8):
-                new_row = position[0] + dr * i
-                new_col = position[1] + dc * i
+                new_row = position[0] + d_row * i
+                new_col = position[1] + d_col * i
                 if 0 <= new_row < 8 and 0 <= new_col < 8:
-                    moves.append((new_row, new_col))
+                    moves.append((new_row, new_col, d_row, d_col))
                 else:
                     break
         return moves
@@ -97,16 +98,16 @@ class Bishop(Piece):
 
 class Queen(Piece):
 
-    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int]]:
+    def get_possible_moves(self, position: tuple[int, int]) -> list[tuple[int, int, int, int]]:
         moves = []
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1),
                       (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        for dr, dc in directions:
+        for d_row, d_col in directions:
             for i in range(1, 8):
-                new_row = position[0] + dr * i
-                new_col = position[1] + dc * i
+                new_row = position[0] + d_row * i
+                new_col = position[1] + d_col * i
                 if 0 <= new_row < 8 and 0 <= new_col < 8:
-                    moves.append((new_row, new_col))
+                    moves.append((new_row, new_col, d_row, d_col))
                 else:
                     break
         return moves
@@ -118,9 +119,9 @@ class King(Piece):
         moves = []
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1),
                       (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        for dr, dc in directions:
-            new_row = position[0] + dr
-            new_col = position[1] + dc
+        for d_row, d_col in directions:
+            new_row = position[0] + d_row
+            new_col = position[1] + d_col
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 moves.append((new_row, new_col))
         return moves

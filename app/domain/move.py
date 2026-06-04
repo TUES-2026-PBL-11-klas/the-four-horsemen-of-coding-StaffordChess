@@ -5,7 +5,18 @@ from app.domain.square import Square
 
 
 class Move:
-
+    start_square: Square
+    end_square: Square
+    piece_moved: Piece
+    piece_captured: Piece | None
+    has_piece_moved: bool
+    is_en_passant: bool
+    en_passant_captured_square: Square | None
+    is_pawn_promotion: bool
+    promotion_piece: Piece | None
+    is_king_castling: bool
+    is_queen_castling: bool
+    
     def __init__(self, start_square: Square, end_square: Square):
         if start_square.piece is None:
             raise ValueError("Start square must have a piece to move.")

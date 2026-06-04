@@ -4,6 +4,9 @@ from app.domain.piece import Piece
 
 
 class Square:
+    x: int
+    y: int  
+    piece: Piece | None
 
     def __init__(self, x: int, y: int, piece: Piece = None):
         self.x = x

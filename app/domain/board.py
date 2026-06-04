@@ -6,6 +6,7 @@ from app.domain.square import Square
 
 
 class Board:
+    squares: list[list[Square]]
 
     def __init__(self):
         self.squares: list[list[Square]] = [[None] * 8 for _ in range(8)]
