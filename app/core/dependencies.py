@@ -12,8 +12,9 @@ from app.utils.security import decode_token
 from app.repositories.chess_game_repository import ChessGameRepository
 from app.repositories.rating_history_repository import RatingHistoryRepository
 from app.services.profile_service import ProfileService
+from app.services.lobby_service import LobbyService
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
+_lobby_service = LobbyService()
 
 def get_user_repo(db: AsyncSession = Depends(get_db)) -> UserRepository:
     return UserRepository(db)
@@ -42,7 +43,8 @@ def get_profile_service(
 ) -> ProfileService:
     return ProfileService(user_repo, game_repo, rating_repo)
 
-
+def get_lobby_service() -> LobbyService:
+    return _lobby_service
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
