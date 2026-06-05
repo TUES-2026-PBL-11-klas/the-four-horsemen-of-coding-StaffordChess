@@ -17,6 +17,9 @@ from app.repositories.email_verification_repository import EmailVerificationRepo
 from app.services import auth_service as auth_service_module
 from app.services import mail_service
 from app.services.auth_service import AuthService
+from app.services.profile_service import ProfileService
+from app.repositories.chess_game_repository import ChessGameRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
 from main import app
 
 
@@ -91,3 +94,11 @@ async def auth_service(db_session):
     user_repo = UserRepository(db_session)
     verification_repo = EmailVerificationRepository(db_session)
     return AuthService(user_repo, verification_repo)
+
+
+@pytest_asyncio.fixture
+def profile_service(db_session):
+    user_repo = UserRepository(db_session)
+    game_repo = ChessGameRepository(db_session)
+    rating_repo = RatingHistoryRepository(db_session)
+    return ProfileService(user_repo, game_repo, rating_repo)
