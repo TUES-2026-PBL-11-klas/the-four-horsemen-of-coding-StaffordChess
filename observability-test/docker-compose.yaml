@@ -1,0 +1,30 @@
+services:
+  loki:
+    image: grafana/loki:3.0.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./loki.yaml:/etc/loki/loki.yaml
+    user: "10001"
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    volumes:
+      - ./promtail.yaml:/etc/promtail/promtail.yaml
+      - /var/log:/var/log:ro
+      - /tmp/test-logs:/test-logs  # we'll write test logs here
+    command: -config.file=/etc/promtail/promtail.yaml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    depends_on:
+      - loki

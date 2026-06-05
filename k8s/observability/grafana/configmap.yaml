@@ -1,0 +1,24 @@
+# grafana/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: observability
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: "15s"
+
+      - name: Loki
+        type: loki
+        url: http://loki:3100
+        editable: true
+        jsonData:
+          maxLines: 1000
