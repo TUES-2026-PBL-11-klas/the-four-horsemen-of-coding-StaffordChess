@@ -6,7 +6,7 @@ from app.domain.game_result import GameResult
 from app.domain.move import Move
 from app.domain.piece import Bishop, Knight, Queen, Rook
 from app.domain.square import Square
-
+from app.domain.fen import load_from_fen, load_to_fen
 
 class ChessEngine:
     board: Board
@@ -393,3 +393,13 @@ class ChessEngine:
         if self.draw_requested_by is None:
             raise ValueError("No draw request to decline")
         self.draw_requested_by = None
+    
+    def to_fen(self) -> str:
+        return load_to_fen(self)
+ 
+    def from_fen(self, fen: str) -> None:
+        load_from_fen(self, fen)
+
+    def get_en_passant_moves(self) -> list[Move]:
+        return [m for m in self.get_all_legal_moves() if m.is_en_passant]
+
