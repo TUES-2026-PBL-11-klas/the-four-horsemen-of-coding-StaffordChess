@@ -9,7 +9,9 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.email_verification_repository import EmailVerificationRepository
 from app.services.auth_service import AuthService
 from app.utils.security import decode_token
-
+from app.repositories.chess_game_repository import ChessGameRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
+from app.services.profile_service import ProfileService
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
@@ -20,12 +22,26 @@ def get_user_repo(db: AsyncSession = Depends(get_db)) -> UserRepository:
 def get_verification_repo(db: AsyncSession = Depends(get_db)) -> EmailVerificationRepository:
     return EmailVerificationRepository(db)
 
+def get_game_repo(db: AsyncSession = Depends(get_db)) -> ChessGameRepository:
+    return ChessGameRepository(db)
+
+
+def get_rating_repo(db: AsyncSession = Depends(get_db)) -> RatingHistoryRepository:
+    return RatingHistoryRepository(db)
 
 def get_auth_service(
     user_repo: UserRepository = Depends(get_user_repo),
     verification_repo: EmailVerificationRepository = Depends(get_verification_repo),
 ) -> AuthService:
     return AuthService(user_repo, verification_repo)
+
+def get_profile_service(
+    user_repo: UserRepository = Depends(get_user_repo),
+    game_repo: ChessGameRepository = Depends(get_game_repo),
+    rating_repo: RatingHistoryRepository = Depends(get_rating_repo),
+) -> ProfileService:
+    return ProfileService(user_repo, game_repo, rating_repo)
+
 
 
 async def get_current_user(
