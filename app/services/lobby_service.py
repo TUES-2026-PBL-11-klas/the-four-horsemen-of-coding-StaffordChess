@@ -76,3 +76,13 @@ class LobbyService:
         })
 
         return game
+    
+    async def cancel_challenge(self, challenge_id: str, user_id: int):
+        if challenge_id not in self.waiting_games:
+            raise ValueError("Challenge not found")
+        
+        challenge = self.waiting_games[challenge_id]
+        if challenge.host_id != user_id:
+            raise PermissionError("You can only cancel your own challenges")
+
+        await self.remove_from_lobby(challenge_id)

@@ -42,3 +42,17 @@ async def websocket_lobby(
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         service.disconnect(websocket)
+
+@router.delete("/cancel/{challenge_id}")
+async def cancel_game(
+    challenge_id: str,
+    current_user = Depends(get_current_user),
+    service: LobbyService = Depends(get_lobby_service)
+):
+    try:
+        await service.cancel_challenge(challenge_id, current_user.id)
+        return {"message": "Challenge cancelled successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
