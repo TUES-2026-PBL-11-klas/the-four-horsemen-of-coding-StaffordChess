@@ -11,7 +11,7 @@ spec:
 
   source:
     repoURL: https://github.com/TUES-2026-PBL-11-klas/the-four-horsemen-of-coding-StaffordChess.git
-    targetRevision: Infrastructure
+    targetRevision: updates
     path: k8s/frontend
 
   destination:
