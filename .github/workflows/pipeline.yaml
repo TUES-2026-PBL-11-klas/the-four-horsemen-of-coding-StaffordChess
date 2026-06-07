@@ -41,34 +41,39 @@ jobs:
 
       - name: Build and push Backend Docker image
         run: |
-          IMAGE_TAG=${{ github.sha }}
-          IMAGE_NAME=vikt0rinho/staffordchess-backend
-          docker build -f app/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
-          docker push $IMAGE_NAME:$IMAGE_TAG
+           IMAGE_TAG=${{ github.sha }}
 
-      # --- Frontend стъпките са изключени, докато няма frontend/Dockerfile ---
-      # - name: Build and push Frontend Docker image
+           IMAGE_NAME=vikt0rinho/staffordchess-backend
+           docker build -f app/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
+           docker push $IMAGE_NAME:$IMAGE_TAG
+
+           IMAGE_NAME=vikt0rinho/staffordchess-frontend
+           docker build -f frontend/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./frontend
+           docker push $IMAGE_NAME:$IMAGE_TAG
+
+      # # --- Frontend стъпките са изключени, докато няма frontend/Dockerfile ---
+      # # - name: Build and push Frontend Docker image
+      # #   run: |
+      # #     IMAGE_TAG=${{ github.sha }}
+      # #     IMAGE_NAME=vikt0rinho/staffordchess-frontend
+      # #     docker build -f frontend/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./frontend
+      # #     docker push $IMAGE_NAME:$IMAGE_TAG
+
+      # - name: Update images' tag in manifests
       #   run: |
       #     IMAGE_TAG=${{ github.sha }}
-      #     IMAGE_NAME=vikt0rinho/staffordchess-frontend
-      #     docker build -f frontend/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./frontend
-      #     docker push $IMAGE_NAME:$IMAGE_TAG
+      #     sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-backend:$IMAGE_TAG\"#" k8s/backend/deployment.yaml
+      # #   sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-frontend:$IMAGE_TAG\"#" k8s/frontend/deployment.yaml
 
-      - name: Update images' tag in manifests
-        run: |
-          IMAGE_TAG=${{ github.sha }}
-          sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-backend:$IMAGE_TAG\"#" k8s/backend/deployment.yaml
-      #   sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-frontend:$IMAGE_TAG\"#" k8s/frontend/deployment.yaml
-
-      - name: Commit updated manifests
-        run: |
-          IMAGE_TAG=${{ github.sha }}
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add k8s/backend/deployment.yaml
-          if git diff --cached --quiet; then
-            echo "No manifest change to commit"
-          else
-            git commit -m "ci: update images' tags to $IMAGE_TAG"
-            git push
-          fi
+      # - name: Commit updated manifests
+      #   run: |
+      #     IMAGE_TAG=${{ github.sha }}
+      #     git config user.name "github-actions"
+      #     git config user.email "actions@github.com"
+      #     git add k8s/backend/deployment.yaml
+      #     if git diff --cached --quiet; then
+      #       echo "No manifest change to commit"
+      #     else
+      #       git commit -m "ci: update images' tags to $IMAGE_TAG"
+      #       git push
+      #     fi
