@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service
+  name: stafford-chess-frontend-service
   namespace: frontend
 spec:
   selector:
-    app: frontend
+    app: stafford-chess-frontend
   ports:
   - port: 80
     targetPort: 80
