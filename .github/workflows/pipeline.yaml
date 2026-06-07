@@ -43,7 +43,7 @@ jobs:
         run: |
           IMAGE_TAG=${{ github.sha }}
           IMAGE_NAME=vikt0rinho/staffordchess-backend
-          docker build -f app/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./app
+          docker build -f app/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_NAME:$IMAGE_TAG
 
       # --- Frontend стъпките са изключени, докато няма frontend/Dockerfile ---
