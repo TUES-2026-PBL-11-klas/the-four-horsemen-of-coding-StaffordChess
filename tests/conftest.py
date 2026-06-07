@@ -21,6 +21,7 @@ from app.services.profile_service import ProfileService
 from app.repositories.chess_game_repository import ChessGameRepository
 from app.repositories.rating_history_repository import RatingHistoryRepository
 from main import app
+from app.models.user import User
 
 
 test_engine = create_async_engine(
@@ -102,3 +103,16 @@ def profile_service(db_session):
     game_repo = ChessGameRepository(db_session)
     rating_repo = RatingHistoryRepository(db_session)
     return ProfileService(user_repo, game_repo, rating_repo)
+
+@pytest_asyncio.fixture
+async def game_repo(db_session):
+    return ChessGameRepository(db_session)
+
+
+@pytest_asyncio.fixture
+async def players(db_session):
+    player1 = User(username="player1", email="player1@example.com", hashed_password="password123")
+    player2 = User(username="player2", email="player2@example.com", hashed_password="password123")
+    db_session.add_all([player1, player2])
+    await db_session.flush()
+    return player1, player2
