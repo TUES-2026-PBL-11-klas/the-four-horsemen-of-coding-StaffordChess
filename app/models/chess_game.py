@@ -14,5 +14,5 @@ class ChessGame(Base):
     status = Column(String, default="ongoing")
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     ended_at = Column(DateTime(timezone=True), nullable=True)
-    time_control = Column(String, nullable=False)
+    time_control = Column(String, nullable=True)
     result = Column(String, nullable=True)

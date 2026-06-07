@@ -33,7 +33,7 @@ class GameSessionService:
 
         self.engine = ChessEngine()
         self.clock = GameClock(initial_seconds, increment_seconds)
-        self.clock.start()
+        self.is_started = False
 
 
     def _user_color(self, user_id: int) -> Color:
@@ -102,10 +102,16 @@ class GameSessionService:
             moves_pgn = self._build_pgn()
             await self.game_repo.finish(game, moves_pgn, result_type, winner_id)
 
-    def resign(self, user_id: int) -> dict:
+    async def resign(self, user_id: int) -> dict:
         player_color = self._user_color(user_id)
+        winner_id = self.black_user_id if player_color == Color.WHITE else self.white_user_id
+        
         self.engine.set_current_turn(player_color)
         self.engine.resign()
+        
+        result_str = "black_wins" if winner_id == self.black_user_id else "white_wins"
+        await self.end_game(winner_id, f"{result_str}_by_resignation")
+        
         return self.get_state()
 
     def _build_pgn(self) -> str:

@@ -48,10 +48,11 @@ async def test_initial_state(db_session, game_repo, players):
     assert "fen" in state
 
 
-async def test_clock_running_at_start(db_session, game_repo, players):
+async def test_clock_not_started_until_both_join(db_session, game_repo, players):
     player1, player2 = players
     session = await make_session(db_session, game_repo, player1, player2)
-    assert session.clock.is_running is True
+    assert session.clock.is_running is False
+    assert session.is_started is False
 
 
 
@@ -129,7 +130,7 @@ async def test_move_after_game_over_rejected(db_session, game_repo, players):
 async def test_resign_ends_game(db_session, game_repo, players):
     player1, player2 = players
     session = await make_session(db_session, game_repo, player1, player2)
-    state = session.resign(player1.id)
+    state = await session.resign(player1.id)
     assert state["is_game_over"] is True
 
 
