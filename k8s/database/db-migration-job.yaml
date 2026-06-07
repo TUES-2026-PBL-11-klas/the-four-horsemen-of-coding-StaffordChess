@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: database
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: migrate
+        image: postgres:15
+        envFrom:
+        - secretRef:
+            name: db-secret
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          until pg_isready -h postgres -U "$POSTGRES_USER"; do sleep 2; done
+          for f in $(ls /migrations/*.sql | sort); do
+            echo ">> $f"
+            psql -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f "$f"
+          done
+        volumeMounts:
+        - name: migrations
+          mountPath: /migrations
+      volumes:
+      - name: migrations
+        configMap:
+          name: db-migrations

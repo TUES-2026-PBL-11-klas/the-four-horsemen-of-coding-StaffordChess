@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: database
+
+resources:
+  - statefulset.yaml
+  - service.yaml
+  - db_externalsecret.yaml
+  - db-migration-job.yaml
+
+configMapGenerator:
+  - name: db-migrations
+    files:
+      - migrations/001_create_users_and_email_verifications.sql
+      - migrations/002_create_games_and_rating_history.sql
+      - migrations/003_create_puzzles_and_user_puzzle_attempts.sql
+
+generatorOptions:
+  disableNameSuffixHash: true
