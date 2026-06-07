@@ -229,3 +229,13 @@ ChessApp.venv/
 .terraform/
 
 *.rpm
+
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+.idea/
+
