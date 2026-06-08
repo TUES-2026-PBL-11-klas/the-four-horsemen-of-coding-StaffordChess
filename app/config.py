@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:5173"
 
-    STOCKFISH_PATH: str
+    STOCKFISH_PATH: str = "stockfish"
 
     @property
     def cors_origins_list(self) -> list[str]:
