@@ -30,3 +30,6 @@ spec:
         envFrom:
         - secretRef:
             name: staffordchess-secret
+        env:
+          - name: STOCKFISH_PATH
+            value: "/usr/games/stockfish"
