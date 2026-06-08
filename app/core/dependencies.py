@@ -13,6 +13,8 @@ from app.repositories.chess_game_repository import ChessGameRepository
 from app.repositories.rating_history_repository import RatingHistoryRepository
 from app.services.profile_service import ProfileService
 from app.services.lobby_service import LobbyService
+from app.services.analysis_service import AnalysisService
+from app.config import settings
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 _lobby_service = LobbyService()
 
@@ -45,6 +47,9 @@ def get_profile_service(
 
 def get_lobby_service() -> LobbyService:
     return _lobby_service
+
+def get_analysis_service() -> AnalysisService:
+    return AnalysisService(settings.STOCKFISH_PATH)
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),

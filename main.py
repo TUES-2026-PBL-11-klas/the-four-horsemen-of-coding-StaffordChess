@@ -6,6 +6,7 @@ from app.routers.auth_router import router as auth_router
 from app.routers.profile_router import router as profile_router
 from app.routers.lobby_router import router as lobby_router
 from app.routers.game_session_router import router as game_session_router
+from app.routers.analysis_router import router as analysis_router
 from app.config import settings
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(lobby_router)
 app.include_router(game_session_router)
+app.include_router(analysis_router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
