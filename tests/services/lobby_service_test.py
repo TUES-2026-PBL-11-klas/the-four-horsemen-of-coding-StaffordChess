@@ -44,12 +44,13 @@ def game_repo(db_session):
 @pytest.mark.asyncio
 async def test_websocket_connect_and_disconnect(lobby_service):
     ws = DummyWebSocket()
+    user_id = 1
+    await lobby_service.connect(ws, user_id)
     
-    await lobby_service.connect(ws)
     assert ws.accepted is True
     assert ws in lobby_service.active_connections
     
-    lobby_service.disconnect(ws)
+    await lobby_service.disconnect(ws)
     assert ws not in lobby_service.active_connections
 
 
@@ -60,7 +61,7 @@ async def test_add_to_lobby_creates_game_and_broadcasts(lobby_service, db_sessio
     config = GameConfig(time_control="10+0", color_preference="white")
 
     ws = DummyWebSocket()
-    await lobby_service.connect(ws)
+    await lobby_service.connect(ws, user.id)
 
     challenge = await lobby_service.add_to_lobby(user, config)
 
@@ -83,7 +84,7 @@ async def test_cancel_challenge_success(lobby_service, db_session):
     challenge = await lobby_service.add_to_lobby(user, config)
     
     ws = DummyWebSocket()
-    await lobby_service.connect(ws)
+    await lobby_service.connect(ws, user.id)
 
     await lobby_service.cancel_challenge(challenge.id, user.id)
 
@@ -115,7 +116,7 @@ async def test_match_players_success_and_db_creation(lobby_service, game_repo, d
     challenge = await lobby_service.add_to_lobby(host, config)
 
     ws = DummyWebSocket()
-    await lobby_service.connect(ws)
+    await lobby_service.connect(ws, host.id)
 
     game = await lobby_service.match_players(challenge.id, opponent, game_repo)
 
