@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -28,10 +28,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
-          
+
       - name: Run tests
-        run: |
-          pytest
+        run: pytest
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -39,41 +38,31 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Backend Docker image
+      - name: Build and push Docker images
         run: |
-           IMAGE_TAG=${{ github.sha }}
+          IMAGE_TAG=${{ github.sha }}
+          docker build -f app/Dockerfile -t vikt0rinho/staffordchess-backend:$IMAGE_TAG .
+          docker push vikt0rinho/staffordchess-backend:$IMAGE_TAG
+          
+          docker build -f frontend/Dockerfile -t vikt0rinho/staffordchess-frontend:$IMAGE_TAG ./frontend
+          docker push vikt0rinho/staffordchess-frontend:$IMAGE_TAG
 
-           IMAGE_NAME=vikt0rinho/staffordchess-backend
-           docker build -f app/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
-           docker push $IMAGE_NAME:$IMAGE_TAG
+      - name: Update image tags in manifests
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          sed -i -E "s#image: \"vikt0rinho/staffordchess-backend:[^\"]+\"#image: \"vikt0rinho/staffordchess-backend:$IMAGE_TAG\"#" k8s/backend/deployment.yaml
+          sed -i -E "s#image: \"vikt0rinho/staffordchess-frontend:[^\"]+\"#image: \"vikt0rinho/staffordchess-frontend:$IMAGE_TAG\"#" k8s/frontend/deployment.yaml
 
-           IMAGE_NAME=vikt0rinho/staffordchess-frontend
-           docker build -f frontend/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./frontend
-           docker push $IMAGE_NAME:$IMAGE_TAG
-
-      # # --- Frontend стъпките са изключени, докато няма frontend/Dockerfile ---
-      # # - name: Build and push Frontend Docker image
-      # #   run: |
-      # #     IMAGE_TAG=${{ github.sha }}
-      # #     IMAGE_NAME=vikt0rinho/staffordchess-frontend
-      # #     docker build -f frontend/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG ./frontend
-      # #     docker push $IMAGE_NAME:$IMAGE_TAG
-
-      # - name: Update images' tag in manifests
-      #   run: |
-      #     IMAGE_TAG=${{ github.sha }}
-      #     sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-backend:$IMAGE_TAG\"#" k8s/backend/deployment.yaml
-      # #   sed -i -E "s#image: \"[^\"]+\"#image: \"vikt0rinho/staffordchess-frontend:$IMAGE_TAG\"#" k8s/frontend/deployment.yaml
-
-      # - name: Commit updated manifests
-      #   run: |
-      #     IMAGE_TAG=${{ github.sha }}
-      #     git config user.name "github-actions"
-      #     git config user.email "actions@github.com"
-      #     git add k8s/backend/deployment.yaml
-      #     if git diff --cached --quiet; then
-      #       echo "No manifest change to commit"
-      #     else
-      #       git commit -m "ci: update images' tags to $IMAGE_TAG"
-      #       git push
-      #     fi
+      - name: Commit updated manifests
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add k8s/backend/deployment.yaml
+          git add k8s/frontend/deployment.yaml
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit"
+          else
+            git commit -m "ci: update image tags to $IMAGE_TAG"
+            git push
+          fi
