@@ -46,7 +46,7 @@ async def game_websocket(
         await websocket.close(code=4003)
         return
 
-    session = session_manager.get_or_create(
+    session = await session_manager.get_or_create(
         game_id, game.white_player_id, game.black_player_id, game_repo,
     )
 

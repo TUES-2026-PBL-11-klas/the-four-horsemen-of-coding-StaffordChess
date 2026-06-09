@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.chess_game_repository import ChessGameRepository
 from app.repositories.rating_history_repository import RatingHistoryRepository
@@ -37,15 +38,22 @@ class ProfileService:
 
         games = await self.game_repo.get_user_games(user_id)
 
+        opponent_ids = {
+            (g.black_player_id if g.white_player_id == user_id else g.white_player_id)
+            for g in games
+        }
+        opponents = {}
+        for oid in opponent_ids:
+            opponents[oid] = await self.user_repo.get_by_id(oid)
+
         history = []
         for game in games:
             played_white = (game.white_player_id == user_id)
             opponent_id = game.black_player_id if played_white else game.white_player_id
-            opponent = await self.user_repo.get_by_id(opponent_id)
-            
+            opponent = opponents.get(opponent_id)
             history.append(GameHistoryItem(
                 game_id=game.id,
-                opponent_username=opponent.username,
+                opponent_username=opponent.username if opponent else "Deleted user",
                 played_as="white" if played_white else "black",
                 result=game.result,
                 outcome=self._outcome_for_user(game, user_id),

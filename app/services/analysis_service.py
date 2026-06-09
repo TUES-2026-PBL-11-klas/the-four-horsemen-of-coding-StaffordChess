@@ -8,9 +8,10 @@ from app.domain.evaluation_result import EvaluationResult
 
 
 class AnalysisService:
-    def __init__(self, stockfish_path: str, depth: int = 15):
+    def __init__(self, stockfish_path: str, depth: int = 15, max_game_positions: int = 200):
         self.stockfish_path = stockfish_path
         self.depth = depth
+        self.max_game_positions = max_game_positions
 
     def analyze_position(self, fen: str) -> EvaluationResult:
         try:
@@ -26,6 +27,11 @@ class AnalysisService:
             raise HTTPException(status_code=503, detail="Analysis engine not available")
 
     def analyze_game(self, fens: list[str]) -> list[EvaluationResult]:
+        if len(fens) > self.max_game_positions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many positions to analyse (max {self.max_game_positions})",
+            )
         results = []
         try:
             with chess.engine.SimpleEngine.popen_uci(self.stockfish_path) as engine:

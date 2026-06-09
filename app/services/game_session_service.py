@@ -35,7 +35,35 @@ class GameSessionService:
         self.clock = GameClock(initial_seconds, increment_seconds)
         self.is_started = False
 
+    async def hydrate_from_history(self, pgn_history: str | None):
+        if not pgn_history:
+            return
 
+        moves = self._get_from_pgn(pgn_history)
+        for move in moves:
+            self.engine.make_move(move, switch_turn=False)
+            self.engine.set_current_turn(self.engine.current_turn.get_opposite_color())
+
+    def _get_from_pgn(self, pgn_history: str) -> list[Move]:
+        if not pgn_history:
+            return []
+        move_notations = pgn_history.strip().split()
+        moves = []
+        
+        for notation in move_notations:
+            start_sq_str, end_sq_str = notation[:2], notation[2:]
+            
+            start_row, start_col = _square_to_coordinates(start_sq_str)
+            end_row, end_col = _square_to_coordinates(end_sq_str)
+            
+            start_sq = self.engine.board.get_square(start_row, start_col)
+            end_sq = self.engine.board.get_square(end_row, end_col)
+            
+            move = Move(start_sq, end_sq)
+            moves.append(move)
+            
+        return moves
+    
     def _user_color(self, user_id: int) -> Color:
         if user_id == self.white_user_id:
             return Color.WHITE
@@ -63,24 +91,33 @@ class GameSessionService:
         if player_color != self.engine.current_turn:
             raise HTTPException(status_code=400, detail="Not your turn")
 
+        if self.is_started and self.clock.is_time_up(player_color):
+            await self._end_on_time(player_color)
+            return self.get_state()
+
         move = self._find_legal_move(from_sq, to_sq)
         self.engine.make_move(move)
         self.clock.switch_turn()
 
-
         if self.engine.is_checkmate():
-            winner_id = self.white_user_id if player_color == Color.WHITE else self.black_user_id
             if player_color == Color.WHITE:
                 self.engine.game_result.set_result(GameResult.Result.WHITE_WINS, "checkmate")
-                result = "white_wins"
+                winner_id, result = self.white_user_id, "white_wins"
             else:
                 self.engine.game_result.set_result(GameResult.Result.BLACK_WINS, "checkmate")
-                result = "black_wins"
+                winner_id, result = self.black_user_id, "black_wins"
             await self.end_game(winner_id, result)
         elif self.engine.is_stalemate():
             self.engine.game_result.set_result(GameResult.Result.DRAW, "stalemate")
             await self.end_game(None, "draw")
 
+        return self.get_state()
+
+    async def check_time(self) -> dict:
+        if self.is_started and not self.engine.game_result.is_game_over():
+            active = self.engine.current_turn
+            if self.clock.is_time_up(active):
+                await self._end_on_time(active)
         return self.get_state()
 
     def get_state(self) -> dict:
@@ -95,28 +132,42 @@ class GameSessionService:
             "result": self.engine.game_result.result.value,
         }
 
+    async def _end_on_time(self, loser_color: Color) -> None:
+        if loser_color == Color.WHITE:
+            self.engine.game_result.set_result(GameResult.Result.BLACK_WINS, "white ran out of time")
+            winner_id, result_type = self.black_user_id, "black_wins_on_time"
+        else:
+            self.engine.game_result.set_result(GameResult.Result.WHITE_WINS, "black ran out of time")
+            winner_id, result_type = self.white_user_id, "white_wins_on_time"
+        await self.end_game(winner_id, result_type)
+
     async def end_game(self, winner_id: int | None, result_type: str) -> None:
         self.clock.stop()
         game = await self.game_repo.get_by_id(self.game_id)
         if game is not None:
-            moves_pgn = self._build_pgn()
-            await self.game_repo.finish(game, moves_pgn, result_type, winner_id)
+            move_text = self._build_pgn()
+            await self.game_repo.finish(game, move_text, result_type, winner_id)
 
     async def resign(self, user_id: int) -> dict:
+        if self.engine.game_result.is_game_over():
+            raise HTTPException(status_code=400, detail="Game is already over")
+
         player_color = self._user_color(user_id)
-        winner_id = self.black_user_id if player_color == Color.WHITE else self.white_user_id
-        
-        self.engine.set_current_turn(player_color)
-        self.engine.resign()
-        
-        result_str = "black_wins" if winner_id == self.black_user_id else "white_wins"
-        await self.end_game(winner_id, f"{result_str}_by_resignation")
-        
+        if player_color == Color.WHITE:
+            self.engine.game_result.set_result(GameResult.Result.WHITE_RESIGNS, "white resigned")
+            winner_id, result_type = self.black_user_id, "black_wins_by_resignation"
+        else:
+            self.engine.game_result.set_result(GameResult.Result.BLACK_RESIGNS, "black resigned")
+            winner_id, result_type = self.white_user_id, "white_wins_by_resignation"
+
+        await self.end_game(winner_id, result_type)
         return self.get_state()
 
     def _build_pgn(self) -> str:
         parts = []
         for move in self.engine.move_history:
-            parts.append(move.start_square.algebraic_notation()
-                         + move.end_square.algebraic_notation())
+            uci = move.start_square.algebraic_notation() + move.end_square.algebraic_notation()
+            if move.is_pawn_promotion and move.promotion_piece is not None:
+                uci += move.promotion_piece.get_piece_symbol().lower()
+            parts.append(uci)
         return " ".join(parts)
