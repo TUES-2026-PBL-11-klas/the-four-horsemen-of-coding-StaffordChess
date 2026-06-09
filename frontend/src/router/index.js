@@ -26,6 +26,36 @@ const router = createRouter({
       component: () => import('../views/VerifyEmailView.vue'),
       meta: { guestOnly: true },
     },
+    {
+      path: '/play',
+      name: 'play',
+      component: () => import('../views/PlayView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/waiting',
+      name: 'waiting',
+      component: () => import('../views/WaitingView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/game/:id',
+      name: 'game',
+      component: () => import('../views/GameView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/review/:id',
+      name: 'review',
+      component: () => import('../views/GameReviewView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
