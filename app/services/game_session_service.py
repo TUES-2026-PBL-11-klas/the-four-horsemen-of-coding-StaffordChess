@@ -6,8 +6,18 @@ from app.domain.chess_engine import ChessEngine
 from app.domain.game_clock import GameClock
 from app.domain.color import Color
 from app.domain.move import Move
+from app.domain.piece import Bishop, Knight, Queen, Rook
 from app.repositories.chess_game_repository import ChessGameRepository
 from app.domain.game_result import GameResult
+
+
+_PROMOTION_PIECES = {
+    "q": Queen,
+    "r": Rook,
+    "b": Bishop,
+    "n": Knight,
+}
+
 
 def _square_to_coordinates(square: str) -> tuple[int, int]:
     if len(square) != 2:
@@ -39,31 +49,16 @@ class GameSessionService:
         if not pgn_history:
             return
 
-        moves = self._get_from_pgn(pgn_history)
-        for move in moves:
-            self.engine.make_move(move, switch_turn=False)
-            self.engine.set_current_turn(self.engine.current_turn.get_opposite_color())
+        for token in pgn_history.strip().split():
+            if len(token) < 4:
+                raise ValueError(f"Invalid UCI token in history: {token!r}")
 
-    def _get_from_pgn(self, pgn_history: str) -> list[Move]:
-        if not pgn_history:
-            return []
-        move_notations = pgn_history.strip().split()
-        moves = []
-        
-        for notation in move_notations:
-            start_sq_str, end_sq_str = notation[:2], notation[2:]
-            
-            start_row, start_col = _square_to_coordinates(start_sq_str)
-            end_row, end_col = _square_to_coordinates(end_sq_str)
-            
-            start_sq = self.engine.board.get_square(start_row, start_col)
-            end_sq = self.engine.board.get_square(end_row, end_col)
-            
-            move = Move(start_sq, end_sq)
-            moves.append(move)
-            
-        return moves
-    
+            from_sq, to_sq = token[:2], token[2:4]
+            promotion_letter = token[4].lower() if len(token) >= 5 else None
+
+            move = self._find_legal_move(from_sq, to_sq, promotion_letter)
+            self.engine.make_move(move)
+
     def _user_color(self, user_id: int) -> Color:
         if user_id == self.white_user_id:
             return Color.WHITE
@@ -71,19 +66,46 @@ class GameSessionService:
             return Color.BLACK
         raise HTTPException(status_code=403, detail="You are not a player in this game")
 
-    def _find_legal_move(self, from_sq: str, to_sq: str) -> Move:
+    def _find_legal_move(self, from_sq: str, to_sq: str,
+                         promotion: str | None = None) -> Move:
         from_row, from_col = _square_to_coordinates(from_sq)
         to_row, to_col = _square_to_coordinates(to_sq)
 
+        fallback_promotion_move: Move | None = None
+
         for move in self.engine.get_all_legal_moves():
-            if (move.start_square.x == from_row and move.start_square.y == from_col
+            if not (move.start_square.x == from_row and move.start_square.y == from_col
                     and move.end_square.x == to_row and move.end_square.y == to_col):
-                return move
+                continue
 
-        raise HTTPException(status_code=400, detail=f"Illegal move: {from_sq}->{to_sq}")
+            if move.is_pawn_promotion:
+                if promotion is None:
+                    if isinstance(move.promotion_piece, Queen):
+                        fallback_promotion_move = move
+                    continue
+                expected_cls = _PROMOTION_PIECES.get(promotion)
+                if expected_cls is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid promotion piece: {promotion}",
+                    )
+                if isinstance(move.promotion_piece, expected_cls):
+                    return move
+                continue
+
+            return move
+
+        if fallback_promotion_move is not None:
+            return fallback_promotion_move
+
+        detail = f"Illegal move: {from_sq}->{to_sq}"
+        if promotion:
+            detail += promotion
+        raise HTTPException(status_code=400, detail=detail)
 
 
-    async def handle_incoming_move(self, user_id: int, from_sq: str, to_sq: str) -> dict:
+    async def handle_incoming_move(self, user_id: int, from_sq: str, to_sq: str,
+                                   promotion: str | None = None) -> dict:
         if self.engine.game_result.is_game_over():
             raise HTTPException(status_code=400, detail="Game is already over")
 
@@ -95,7 +117,7 @@ class GameSessionService:
             await self._end_on_time(player_color)
             return self.get_state()
 
-        move = self._find_legal_move(from_sq, to_sq)
+        move = self._find_legal_move(from_sq, to_sq, promotion)
         self.engine.make_move(move)
         self.clock.switch_turn()
 
