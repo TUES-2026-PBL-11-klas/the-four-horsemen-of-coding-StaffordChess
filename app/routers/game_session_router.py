@@ -9,6 +9,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.repositories.chess_game_repository import ChessGameRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
 from app.core.connection_manager import ConnectionManager
 from app.core.game_session_manager import GameSessionManager
 from app.utils.security import decode_token
@@ -90,6 +91,9 @@ async def game_websocket(
         return
 
     game_repo = ChessGameRepository(db)
+    user_repo = UserRepository(db)
+    rating_repo = RatingHistoryRepository(db)
+
     game = await game_repo.get_by_id(game_id)
     if game is None:
         await websocket.close(code=4004)
@@ -104,6 +108,8 @@ async def game_websocket(
         game_id, game.white_player_id, game.black_player_id, game_repo,
         initial_seconds=initial_seconds,
         increment_seconds=increment_seconds,
+        user_repo=user_repo,
+        rating_repo=rating_repo,
     )
 
     await connection_manager.connect(game_id, websocket)

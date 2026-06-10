@@ -8,6 +8,9 @@ from app.domain.color import Color
 from app.domain.move import Move
 from app.domain.piece import Bishop, Knight, Queen, Rook
 from app.repositories.chess_game_repository import ChessGameRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
+from app.services.rating_service import RatingService
 from app.domain.game_result import GameResult
 
 
@@ -35,15 +38,20 @@ class GameSessionService:
 
     def __init__(self, game_id: int, white_user_id: int, black_user_id: int,
                  game_repo: ChessGameRepository,
-                 initial_seconds: int = 300, increment_seconds: int = 0):
+                 initial_seconds: int = 300, increment_seconds: int = 0,
+                 user_repo: UserRepository | None = None,
+                 rating_repo: RatingHistoryRepository | None = None):
         self.game_id = game_id
         self.white_user_id = white_user_id
         self.black_user_id = black_user_id
         self.game_repo = game_repo
+        self.user_repo = user_repo
+        self.rating_repo = rating_repo
 
         self.engine = ChessEngine()
         self.clock = GameClock(initial_seconds, increment_seconds)
         self.is_started = False
+        self._finalized = False
 
     async def hydrate_from_history(self, pgn_history: str | None):
         if not pgn_history:
@@ -174,11 +182,19 @@ class GameSessionService:
         await self.end_game(winner_id, result_type)
 
     async def end_game(self, winner_id: int | None, result_type: str) -> None:
+        if self._finalized:
+            return
+        self._finalized = True
+
         self.clock.stop()
         game = await self.game_repo.get_by_id(self.game_id)
         if game is not None:
             move_text = self._build_pgn()
             await self.game_repo.finish(game, move_text, result_type, winner_id)
+
+        if self.user_repo is not None and self.rating_repo is not None:
+            rating_service = RatingService(self.user_repo, self.rating_repo)
+            await rating_service.apply(self.white_user_id, self.black_user_id, winner_id)
 
     async def resign(self, user_id: int) -> dict:
         if self.engine.game_result.is_game_over():

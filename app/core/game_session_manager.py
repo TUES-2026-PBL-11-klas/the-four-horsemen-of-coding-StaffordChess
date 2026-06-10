@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from app.services.game_session_service import GameSessionService
 from app.repositories.chess_game_repository import ChessGameRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
 
 
 class GameSessionManager:
@@ -16,6 +18,8 @@ class GameSessionManager:
         game_repo: ChessGameRepository,
         initial_seconds: int = 300,
         increment_seconds: int = 0,
+        user_repo: UserRepository | None = None,
+        rating_repo: RatingHistoryRepository | None = None,
     ) -> GameSessionService:
         if game_id in self.sessions:
             return self.sessions[game_id]
@@ -23,6 +27,8 @@ class GameSessionManager:
         session = GameSessionService(
             game_id, white_user_id, black_user_id, game_repo,
             initial_seconds, increment_seconds,
+            user_repo=user_repo,
+            rating_repo=rating_repo,
         )
 
         game_data = await game_repo.get_by_id(game_id)
