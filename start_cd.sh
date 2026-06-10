@@ -1,7 +1,9 @@
 #!/bin/bash
 
 echo "Configuring context for kubectl..."
-kubectl config use-context docker-desktop
+#kubectl config use-context docker-desktop
+kubectl config use-context stafford-chess-cluster
+
 
 echo "test_1"
 
