@@ -16,3 +16,10 @@ echo "Waiting for ArgoCd password..."
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
 echo "test_3"
+
+echo "Starting port forwarding to Prometheus, Grafana, and Loki..."
+kubectl port-forward -n observability svc/prometheus 9090:9090
+kubectl port-forward -n observability svc/grafana 3000:3000
+kubectl port-forward -n observability svc/loki 3100:3100
+
+echo
