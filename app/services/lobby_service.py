@@ -23,17 +23,7 @@ class LobbyService:
     async def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-
-        user_id = self._connection_users.pop(websocket, None)
-        if user_id is None:
-            return
-
-        if user_id in self._connection_users.values():
-            return
-
-        stale = [cid for cid, ch in self.waiting_games.items() if ch.host_id == user_id]
-        for cid in stale:
-            await self.remove_from_lobby(cid)
+        self._connection_users.pop(websocket, None)
 
     async def broadcast(self, message: dict):
         for connection in self.active_connections:

@@ -6,8 +6,21 @@ from app.domain.chess_engine import ChessEngine
 from app.domain.game_clock import GameClock
 from app.domain.color import Color
 from app.domain.move import Move
+from app.domain.piece import Bishop, Knight, Queen, Rook
 from app.repositories.chess_game_repository import ChessGameRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.rating_history_repository import RatingHistoryRepository
+from app.services.rating_service import RatingService
 from app.domain.game_result import GameResult
+
+
+_PROMOTION_PIECES = {
+    "q": Queen,
+    "r": Rook,
+    "b": Bishop,
+    "n": Knight,
+}
+
 
 def _square_to_coordinates(square: str) -> tuple[int, int]:
     if len(square) != 2:
@@ -25,45 +38,36 @@ class GameSessionService:
 
     def __init__(self, game_id: int, white_user_id: int, black_user_id: int,
                  game_repo: ChessGameRepository,
-                 initial_seconds: int = 300, increment_seconds: int = 0):
+                 initial_seconds: int = 300, increment_seconds: int = 0,
+                 user_repo: UserRepository | None = None,
+                 rating_repo: RatingHistoryRepository | None = None):
         self.game_id = game_id
         self.white_user_id = white_user_id
         self.black_user_id = black_user_id
         self.game_repo = game_repo
+        self.user_repo = user_repo
+        self.rating_repo = rating_repo
 
         self.engine = ChessEngine()
         self.clock = GameClock(initial_seconds, increment_seconds)
         self.is_started = False
+        self._finalized = False
+        self.draw_offered_by: int | None = None
 
     async def hydrate_from_history(self, pgn_history: str | None):
         if not pgn_history:
             return
 
-        moves = self._get_from_pgn(pgn_history)
-        for move in moves:
-            self.engine.make_move(move, switch_turn=False)
-            self.engine.set_current_turn(self.engine.current_turn.get_opposite_color())
+        for token in pgn_history.strip().split():
+            if len(token) < 4:
+                raise ValueError(f"Invalid UCI token in history: {token!r}")
 
-    def _get_from_pgn(self, pgn_history: str) -> list[Move]:
-        if not pgn_history:
-            return []
-        move_notations = pgn_history.strip().split()
-        moves = []
-        
-        for notation in move_notations:
-            start_sq_str, end_sq_str = notation[:2], notation[2:]
-            
-            start_row, start_col = _square_to_coordinates(start_sq_str)
-            end_row, end_col = _square_to_coordinates(end_sq_str)
-            
-            start_sq = self.engine.board.get_square(start_row, start_col)
-            end_sq = self.engine.board.get_square(end_row, end_col)
-            
-            move = Move(start_sq, end_sq)
-            moves.append(move)
-            
-        return moves
-    
+            from_sq, to_sq = token[:2], token[2:4]
+            promotion_letter = token[4].lower() if len(token) >= 5 else None
+
+            move = self._find_legal_move(from_sq, to_sq, promotion_letter)
+            self.engine.make_move(move)
+
     def _user_color(self, user_id: int) -> Color:
         if user_id == self.white_user_id:
             return Color.WHITE
@@ -71,19 +75,45 @@ class GameSessionService:
             return Color.BLACK
         raise HTTPException(status_code=403, detail="You are not a player in this game")
 
-    def _find_legal_move(self, from_sq: str, to_sq: str) -> Move:
+    def _find_legal_move(self, from_sq: str, to_sq: str,
+                         promotion: str | None = None) -> Move:
         from_row, from_col = _square_to_coordinates(from_sq)
         to_row, to_col = _square_to_coordinates(to_sq)
 
+        fallback_promotion_move: Move | None = None
+
         for move in self.engine.get_all_legal_moves():
-            if (move.start_square.x == from_row and move.start_square.y == from_col
+            if not (move.start_square.x == from_row and move.start_square.y == from_col
                     and move.end_square.x == to_row and move.end_square.y == to_col):
-                return move
+                continue
 
-        raise HTTPException(status_code=400, detail=f"Illegal move: {from_sq}->{to_sq}")
+            if move.is_pawn_promotion:
+                if promotion is None:
+                    if isinstance(move.promotion_piece, Queen):
+                        fallback_promotion_move = move
+                    continue
+                expected_cls = _PROMOTION_PIECES.get(promotion)
+                if expected_cls is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid promotion piece: {promotion}",
+                    )
+                if isinstance(move.promotion_piece, expected_cls):
+                    return move
+                continue
 
+            return move
 
-    async def handle_incoming_move(self, user_id: int, from_sq: str, to_sq: str) -> dict:
+        if fallback_promotion_move is not None:
+            return fallback_promotion_move
+
+        detail = f"Illegal move: {from_sq}->{to_sq}"
+        if promotion:
+            detail += promotion
+        raise HTTPException(status_code=400, detail=detail)
+
+    async def handle_incoming_move(self, user_id: int, from_sq: str, to_sq: str,
+                                   promotion: str | None = None) -> dict:
         if self.engine.game_result.is_game_over():
             raise HTTPException(status_code=400, detail="Game is already over")
 
@@ -95,9 +125,11 @@ class GameSessionService:
             await self._end_on_time(player_color)
             return self.get_state()
 
-        move = self._find_legal_move(from_sq, to_sq)
+        move = self._find_legal_move(from_sq, to_sq, promotion)
         self.engine.make_move(move)
         self.clock.switch_turn()
+
+        self.draw_offered_by = None
 
         if self.engine.is_checkmate():
             if player_color == Color.WHITE:
@@ -111,6 +143,36 @@ class GameSessionService:
             self.engine.game_result.set_result(GameResult.Result.DRAW, "stalemate")
             await self.end_game(None, "draw")
 
+        return self.get_state()
+
+    async def offer_draw(self, user_id: int) -> dict:
+        if self.engine.game_result.is_game_over():
+            raise HTTPException(status_code=400, detail="Game is already over")
+        self._user_color(user_id)  # validates participant
+        self.draw_offered_by = user_id
+        return self.get_state()
+
+    async def accept_draw(self, user_id: int) -> dict:
+        if self.engine.game_result.is_game_over():
+            raise HTTPException(status_code=400, detail="Game is already over")
+        self._user_color(user_id)
+        if self.draw_offered_by is None:
+            raise HTTPException(status_code=400, detail="No draw offer to accept")
+        if self.draw_offered_by == user_id:
+            raise HTTPException(status_code=400, detail="You cannot accept your own draw offer")
+
+        self.draw_offered_by = None
+        self.engine.game_result.set_result(GameResult.Result.DRAW, "draw by agreement")
+        await self.end_game(None, "draw")
+        return self.get_state()
+
+    async def decline_draw(self, user_id: int) -> dict:
+        self._user_color(user_id)
+        if self.draw_offered_by is None:
+            raise HTTPException(status_code=400, detail="No draw offer to decline")
+        if self.draw_offered_by == user_id:
+            raise HTTPException(status_code=400, detail="You cannot decline your own draw offer")
+        self.draw_offered_by = None
         return self.get_state()
 
     async def check_time(self) -> dict:
@@ -130,8 +192,19 @@ class GameSessionService:
             "is_check": self.engine.is_in_check(self.engine.current_turn),
             "is_game_over": self.engine.game_result.is_game_over(),
             "result": self.engine.game_result.result.value,
+            "winner_id": self._compute_winner_id(),
+            "draw_offered_by": self.draw_offered_by,
         }
-
+    
+    def _compute_winner_id(self) -> int | None:
+        r = self.engine.game_result.result
+        if r in (GameResult.Result.WHITE_WINS, GameResult.Result.BLACK_RESIGNS):
+            return self.white_user_id
+        if r in (GameResult.Result.BLACK_WINS, GameResult.Result.WHITE_RESIGNS):
+            return self.black_user_id
+        return None
+    
+    
     async def _end_on_time(self, loser_color: Color) -> None:
         if loser_color == Color.WHITE:
             self.engine.game_result.set_result(GameResult.Result.BLACK_WINS, "white ran out of time")
@@ -142,11 +215,20 @@ class GameSessionService:
         await self.end_game(winner_id, result_type)
 
     async def end_game(self, winner_id: int | None, result_type: str) -> None:
+        if self._finalized:
+            return
+        self._finalized = True
+        self.draw_offered_by = None
+
         self.clock.stop()
         game = await self.game_repo.get_by_id(self.game_id)
         if game is not None:
             move_text = self._build_pgn()
             await self.game_repo.finish(game, move_text, result_type, winner_id)
+
+        if self.user_repo is not None and self.rating_repo is not None:
+            rating_service = RatingService(self.user_repo, self.rating_repo)
+            await rating_service.apply(self.white_user_id, self.black_user_id, winner_id)
 
     async def resign(self, user_id: int) -> dict:
         if self.engine.game_result.is_game_over():
