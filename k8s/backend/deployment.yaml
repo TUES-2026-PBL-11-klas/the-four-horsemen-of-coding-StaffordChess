@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: fastapi-app
-        image: "vikt0rinho/staffordchess-backend:0b9089e74c8aabc7b01734cbab4b490887c239d0"
+        image: "vikt0rinho/staffordchess-backend:4046ae07e480a57d132e7793701856409ad7345c"
         ports:
         - containerPort: 8000
         resources:
