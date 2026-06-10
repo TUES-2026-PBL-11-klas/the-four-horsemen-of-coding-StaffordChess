@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: stafford-chess-frontend
-        image: "vikt0rinho/staffordchess-frontend:4046ae07e480a57d132e7793701856409ad7345c"
+        image: "vikt0rinho/staffordchess-frontend:74d33167f784cad414037cd779304dcba73635ca"
         ports:
         - containerPort: 80
         resources:
