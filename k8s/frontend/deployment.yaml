@@ -6,7 +6,7 @@ metadata:
   labels:
     app: stafford-chess-frontend
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: stafford-chess-frontend
