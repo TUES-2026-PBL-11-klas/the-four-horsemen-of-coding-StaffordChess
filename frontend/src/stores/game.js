@@ -49,6 +49,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function setState(s) {
+    console.log('[setState] winner_id from server:', s.winner_id)
     if (s.game_id !== undefined) gameId.value = s.game_id
     if (s.fen !== undefined) fen.value = s.fen
     if (s.turn !== undefined) turn.value = s.turn
@@ -57,6 +58,7 @@ export const useGameStore = defineStore('game', () => {
     if (s.is_check !== undefined) isCheck.value = s.is_check
     if (s.is_game_over !== undefined) isGameOver.value = s.is_game_over
     if (s.result !== undefined) result.value = s.result
+    if (s.winner_id !== undefined) winnerId.value = s.winner_id
   }
 
   function setError(msg) { error.value = msg }

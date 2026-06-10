@@ -316,8 +316,11 @@ onUnmounted(() => {
 .centered { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); }
 .centered-card { background: #252525; border-radius: 14px; padding: 2rem 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; color: #aaa; }
 
-.game-layout { display: flex; flex-direction: column; align-items: center; padding: 1rem; gap: 0.6rem; }
-.player-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 480px; background: #252525; padding: 0.6rem 1rem; border-radius: 10px; }
+.game-layout { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem; gap: 0.4rem; height: calc(100vh - 60px); box-sizing: border-box; }
+.game-layout {
+  --board-side: clamp(240px, calc(100vh - 250px), 480px);
+}
+.player-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: var(--board-side); min-width: 240px; background: #252525; padding: 0.5rem 1rem; border-radius: 10px; }
 .player-info { display: flex; align-items: center; gap: 0.6rem; }
 .player-avatar { width: 32px; height: 32px; background: #3a3a3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; }
 .player-name { font-size: 0.95rem; font-weight: 500; }
@@ -326,16 +329,14 @@ onUnmounted(() => {
 .clock { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #aaa; background: #1a1a1a; padding: 0.3rem 0.8rem; border-radius: 6px; border: 2px solid transparent; }
 .clock.active { color: #e8e0d5; border-color: #5a9e42; }
 
-.board-wrap { width: 100%; max-width: 480px; aspect-ratio: 1; }
-/* vue3-chessboard renders its own .cg-wrap inside; we just give it a square. */
-.board-wrap :deep(.cg-wrap) { width: 100%; height: 100%; }
+.board-wrap { width: var(--board-side); margin: 0 auto; }
 
-.controls { display: flex; gap: 1rem; width: 100%; max-width: 480px; }
+.controls { display: flex; gap: 1rem; width: 100%; max-width: var(--board-side); min-width: 240px; }
 .btn-action { flex: 1; padding: 0.65rem; background: #252525; border: 1px solid #3a3a3a; border-radius: 8px; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 .btn-action:hover:not(:disabled) { border-color: #e05252; color: #e05252; }
 .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.error-banner { width: 100%; max-width: 480px; padding: 0.6rem; background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3); border-radius: 8px; color: #e05252; font-size: 0.85rem; text-align: center; }
+.error-banner { width: 100%; max-width: var(--board-side); padding: 0.6rem; background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3); border-radius: 8px; color: #e05252; font-size: 0.85rem; text-align: center; }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
 .modal { background: #252525; border-radius: 20px; padding: 2.5rem 2rem; width: 90%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }

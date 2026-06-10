@@ -152,8 +152,18 @@ class GameSessionService:
             "is_check": self.engine.is_in_check(self.engine.current_turn),
             "is_game_over": self.engine.game_result.is_game_over(),
             "result": self.engine.game_result.result.value,
+            "winner_id": self._compute_winner_id(),
         }
-
+    
+    def _compute_winner_id(self) -> int | None:
+        r = self.engine.game_result.result
+        if r in (GameResult.Result.WHITE_WINS, GameResult.Result.BLACK_RESIGNS):
+            return self.white_user_id
+        if r in (GameResult.Result.BLACK_WINS, GameResult.Result.WHITE_RESIGNS):
+            return self.black_user_id
+        return None
+    
+    
     async def _end_on_time(self, loser_color: Color) -> None:
         if loser_color == Color.WHITE:
             self.engine.game_result.set_result(GameResult.Result.BLACK_WINS, "white ran out of time")

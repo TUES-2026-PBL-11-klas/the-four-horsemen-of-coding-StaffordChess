@@ -24,6 +24,7 @@ class ChessGameRepository:
         )
         self.db.add(game)
         await self.db.flush()
+        await self.db.commit()
         return game
 
     async def finish(self, game: ChessGame, moves_pgn: str, result: str,

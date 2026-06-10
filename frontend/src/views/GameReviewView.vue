@@ -41,7 +41,7 @@
         <!-- Eval bar (white-at-bottom convention, regardless of board orientation) -->
         <div class="eval-bar" :title="evalTooltip">
           <div class="eval-fill-white" :style="{ height: `${whitePercent}%` }"></div>
-          <div class="eval-label" :class="{ 'on-white': whitePercent > 50 }">
+          <div class="eval-label">
             {{ evalLabel }}
           </div>
           <div v-if="analyzing" class="eval-overlay">···</div>
@@ -378,9 +378,7 @@ onUnmounted(() => {
 
 .eval-bar { position: relative; height: min(480px, 80vw); background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 4px; overflow: hidden; }
 .eval-fill-white { position: absolute; bottom: 0; left: 0; right: 0; background: #f0ebe0; transition: height 0.25s ease; }
-.eval-label { position: absolute; top: 0.3rem; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-variant-numeric: tabular-nums; color: #1a1a1a; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: rgba(0,0,0,0.0); }
-.eval-label.on-white { color: #1a1a1a; }
-.eval-label:not(.on-white) { color: #e8e0d5; }
+.eval-label { position: absolute; top: 0.3rem; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-variant-numeric: tabular-nums; font-weight: 700; padding: 2px 5px; border-radius: 4px; color: #e8e0d5; background: rgba(20,20,20,0.78); white-space: nowrap; }
 .eval-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #777; font-size: 1.2rem; letter-spacing: 0.2em; }
 
 .board-wrap { width: 100%; aspect-ratio: 1; max-width: 480px; }
@@ -415,4 +413,4 @@ onUnmounted(() => {
   .side-panel { grid-column: 1 / -1; max-height: 320px; }
   .eval-bar { height: min(380px, 80vw); }
 }
-</style>  
+</style>

@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { lobbyApi } from '../api/lobby'
@@ -96,9 +96,6 @@ import { ApiError } from '../api/http'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Time controls are stored as "minutes+increment" strings — same format the
-// backend persists in chess_games.time_control. The game_session_router parses
-// them back on WS connect.
 const timeModes = [
   { label: 'Bullet', icon: '⚡', value: '1+0' },
   { label: 'Blitz', icon: '🔥', value: '3+0' },
@@ -114,82 +111,90 @@ const loadingList = ref(true)
 const error = ref('')
 
 const challenges = ref([])
-const { connected, lastEvent, connect } = useLobbySocket()
+const { connected, connect, onEvent } = useLobbySocket()
 
-// Hide our own challenges — the backend rejects self-accept with 400, and
-// showing them would just confuse users. If we ever want a "my challenges"
-// section, it can be a separate list.
 const visibleChallenges = computed(() =>
   challenges.value.filter(c => c.host_id !== authStore.user?.id)
 )
 
-// Apply realtime lobby events. NEW/REMOVE keep the open-challenges list in
-// sync with what other clients are doing. MATCH_STARTED is handled by the
-// WaitingView for own-challenge matches; here we still react to it to drop
-// the matched challenge from the list (it's no longer open).
-watch(lastEvent, (ev) => {
-  if (!ev) return
-  if (ev.type === 'NEW_CHALLENGE') {
-    // Dedup: an initial HTTP load may overlap with WS push of the same
-    // challenge; without this we'd render it twice.
-    if (!challenges.value.find(c => c.id === ev.challenge.id)) {
+onEvent((ev) => {
+  if(!ev) return
+  if(ev.type === 'NEW_CHALLENGE') 
+  {
+    if(!challenges.value.find(c => c.id === ev.challenge.id)) 
+    {
       challenges.value.push(ev.challenge)
     }
-  } else if (ev.type === 'REMOVE_CHALLENGE' || ev.type === 'MATCH_STARTED') {
+  } 
+  else if(ev.type === 'REMOVE_CHALLENGE' || ev.type === 'MATCH_STARTED') 
+  {
     challenges.value = challenges.value.filter(c => c.id !== ev.challenge_id)
   }
 })
 
 async function loadChallenges() {
   loadingList.value = true
-  try {
+  try 
+  {
     challenges.value = await lobbyApi.list()
-  } catch (err) {
-    // Don't blow away an existing list on a transient error.
-    if (err instanceof ApiError && err.status === 401) {
+  } 
+  catch(err) 
+  {
+    if(err instanceof ApiError && err.status === 401) {
       authStore.logout()
       router.push('/login')
     }
-  } finally {
+  } 
+  finally 
+  {
     loadingList.value = false
   }
 }
 
 async function handleCreate() {
   const mode = timeModes.find(m => m.label === selectedMode.value)
-  if (!mode) return
+  if(!mode) return
 
   creating.value = true
   error.value = ''
-  try {
+  try 
+  {
     const challenge = await lobbyApi.create(mode.value, color.value)
-    // Pass the challenge id so WaitingView knows which MATCH_STARTED to
-    // listen for. Using a query param survives refresh.
     router.push({ name: 'waiting', query: { cid: challenge.id } })
-  } catch (err) {
+  } 
+  catch(err) 
+  {
     error.value = err instanceof ApiError ? err.message : 'Could not create challenge.'
-  } finally {
+  } 
+  finally 
+  {
     creating.value = false
   }
 }
 
 async function handleAccept(ch) {
-  if (acceptingId.value) return  // prevent double-click
+  if(acceptingId.value) return
   acceptingId.value = ch.id
   error.value = ''
-  try {
+  try 
+  {
     const result = await lobbyApi.accept(ch.id)
     router.push(`/game/${result.game_id}`)
-  } catch (err) {
-    // If a race condition lost us the challenge (someone else accepted first),
-    // drop it from the list and surface a short message.
-    if (err instanceof ApiError && err.status === 400) {
+  } 
+  catch(err) 
+  {
+    if(err instanceof ApiError && err.status === 400) 
+    {
       challenges.value = challenges.value.filter(c => c.id !== ch.id)
       error.value = 'That challenge is no longer available.'
-    } else {
+    } 
+    else 
+    {
       error.value = err instanceof ApiError ? err.message : 'Could not accept challenge.'
     }
-  } finally {
+  } 
+  finally 
+  {
     acceptingId.value = null
   }
 }

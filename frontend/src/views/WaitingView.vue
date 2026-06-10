@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { lobbyApi } from '../api/lobby'
 import { useLobbySocket } from '../composables/useLobbySocket'
@@ -55,12 +55,9 @@ const challengeColor = ref(null)
 
 let timer = null
 
-// Challenge id is passed via the query string from PlayView. Using the URL
-// (rather than a store) keeps the page refreshable: if the user reloads
-// /waiting?cid=..., they're still subscribed to the same challenge.
 const challengeId = computed(() => route.query.cid)
 
-const { lastEvent, connect } = useLobbySocket()
+const { connect, onEvent } = useLobbySocket()
 
 const elapsedStr = computed(() => {
   const m = Math.floor(elapsed.value / 60).toString().padStart(2, '0')
@@ -74,56 +71,54 @@ const colorLabel = computed(() => {
   return 'Random color'
 })
 
-// React to lobby events. The watcher is the entire matchmaking loop: when
-// the backend broadcasts MATCH_STARTED for OUR challenge, navigate to the
-// game. If the challenge gets removed for any other reason (e.g. server
-// restart wiped lobby state), bounce back to /play.
-watch(lastEvent, (ev) => {
-  if (!ev || !challengeId.value) return
+onEvent((ev) => {
+  if(!ev || !challengeId.value) return
 
-  if (ev.type === 'MATCH_STARTED' && ev.challenge_id === challengeId.value) {
+  if(ev.type === 'MATCH_STARTED' && ev.challenge_id === challengeId.value) 
+  {
     router.replace(`/game/${ev.game_id}`)
-  } else if (ev.type === 'REMOVE_CHALLENGE' && ev.challenge_id === challengeId.value) {
-    // Someone (likely the same user from another tab) cancelled this
-    // challenge — go back to the lobby instead of waiting forever.
-    router.replace({ name: 'play' })
+  }
+  else if(ev.type === 'REMOVE_CHALLENGE' && ev.challenge_id === challengeId.value) 
+  {
   }
 })
 
-// Pull our own challenge metadata so we can show "10+0 · You play White"
-// instead of a blank screen. Cheap defensive feature: if the challenge isn't
-// in the lobby anymore (already accepted? expired?), kick back to /play.
 async function loadChallengeInfo() {
-  if (!challengeId.value) return
-  try {
+  if(!challengeId.value) return
+  try 
+  {
     const list = await lobbyApi.list()
     const mine = list.find(c => c.id === challengeId.value)
-    if (!mine) {
-      router.replace({ name: 'play' })
+    if(!mine) 
+    {
       return
     }
     challengeTC.value = mine.time_control
     challengeColor.value = mine.color_preference
-  } catch {
-    // Not fatal — UI will just lack the pills.
-  }
+  } 
+  catch {}
 }
 
 async function handleCancel() {
-  if (!challengeId.value) {
+  if(!challengeId.value) 
+  {
     router.push({ name: 'play' })
     return
   }
   cancelling.value = true
-  try {
+  try 
+  {
     await lobbyApi.cancel(challengeId.value)
     router.push({ name: 'play' })
-  } catch (err) {
-    // 404 means it's already gone (accepted just before us, or expired);
-    // either way the right place to be is back in the lobby.
-    if (err instanceof ApiError && err.status === 404) {
+  } 
+  catch(err) 
+  {
+    if(err instanceof ApiError && err.status === 404) 
+    {
       router.push({ name: 'play' })
-    } else {
+    } 
+    else 
+    {
       error.value = err instanceof ApiError ? err.message : 'Could not cancel.'
       cancelling.value = false
     }
@@ -131,8 +126,8 @@ async function handleCancel() {
 }
 
 onMounted(() => {
-  if (!challengeId.value) {
-    // Reached here without a challenge to wait for — nothing to do.
+  if(!challengeId.value) 
+  {
     router.replace({ name: 'play' })
     return
   }

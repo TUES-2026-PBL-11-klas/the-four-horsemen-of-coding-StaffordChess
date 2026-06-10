@@ -2,27 +2,38 @@ import { ref, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { apiBaseUrl } from '../api/http'
 
-
 export function useLobbySocket() {
   const ws = ref(null)
   const connected = ref(false)
-  const lastEvent = ref(null)
+  const handlers = []
 
-  function connect() {
+  function onEvent(cb) 
+  {
+    handlers.push(cb)
+  }
+
+  function connect() 
+  {
     const auth = useAuthStore()
-    if (!auth.token) return
+    if(!auth.token) return
 
     const wsUrl = `${apiBaseUrl.replace(/^http/, 'ws')}/lobby/ws?token=${auth.token}`
-
     const sock = new WebSocket(wsUrl)
     ws.value = sock
 
     sock.onopen = () => { connected.value = true }
     sock.onmessage = (e) => {
-      try {
-        lastEvent.value = JSON.parse(e.data)
-      } catch {
+      let msg
+      try 
+      {
+        msg = JSON.parse(e.data)
       }
+      catch
+      {
+        return
+      }
+      for(const cb of handlers) 
+        cb(msg)
     }
     sock.onclose = () => { connected.value = false }
     sock.onerror = () => { connected.value = false }
@@ -35,5 +46,5 @@ export function useLobbySocket() {
 
   onUnmounted(disconnect)
 
-  return { connected, lastEvent, connect, disconnect }
+  return { connected, connect, disconnect, onEvent }
 }
