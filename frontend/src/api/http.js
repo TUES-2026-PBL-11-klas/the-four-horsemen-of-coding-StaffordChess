@@ -60,3 +60,13 @@ export async function apiFetch(path, { method = 'GET', body, auth = false, heade
 }
 
 export const apiBaseUrl = BASE_URL
+
+export function wsBaseUrl() {
+  if(/^https?:\/\//.test(BASE_URL)) 
+    {
+    return BASE_URL.replace(/^http/, 'ws')
+  }
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const prefix = BASE_URL.replace(/\/$/, '')
+  return `${scheme}://${window.location.host}${prefix}`
+}

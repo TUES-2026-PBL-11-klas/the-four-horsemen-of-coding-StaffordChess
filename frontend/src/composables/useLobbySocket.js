@@ -1,6 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { apiBaseUrl } from '../api/http'
+import { wsBaseUrl } from '../api/http'
 
 export function useLobbySocket() {
   const ws = ref(null)
@@ -17,7 +17,7 @@ export function useLobbySocket() {
     const auth = useAuthStore()
     if(!auth.token) return
 
-    const wsUrl = `${apiBaseUrl.replace(/^http/, 'ws')}/lobby/ws?token=${auth.token}`
+    const wsUrl = `${wsBaseUrl()}/lobby/ws?token=${auth.token}`
     const sock = new WebSocket(wsUrl)
     ws.value = sock
 

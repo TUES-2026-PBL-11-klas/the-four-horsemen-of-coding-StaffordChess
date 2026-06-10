@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useGameStore } from '../stores/game'
-import { apiBaseUrl } from '../api/http'
+import { wsBaseUrl } from '../api/http'
 
 
 export function useGameSocket() 
@@ -15,7 +15,7 @@ export function useGameSocket()
     const store = useGameStore()
     if (!auth.token) return
 
-    const url = `${apiBaseUrl.replace(/^http/, 'ws')}/game/${gameId}?token=${auth.token}`
+    const url = `${wsBaseUrl()}/game/${gameId}?token=${auth.token}`
     const sock = new WebSocket(url)
     ws.value = sock
 
