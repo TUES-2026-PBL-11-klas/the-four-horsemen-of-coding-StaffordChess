@@ -69,6 +69,10 @@ export function useGameSocket()
 
   function sendResign() { send({ type: 'resign' }) }
 
+  function sendDrawOffer() { send({ type: 'draw_offer' }) }
+  function sendDrawAccept() { send({ type: 'draw_accept' }) }
+  function sendDrawDecline() { send({ type: 'draw_decline' }) }
+
   function disconnect() {
     clearInterval(syncTimer)
     syncTimer = null
@@ -78,5 +82,5 @@ export function useGameSocket()
 
   onUnmounted(disconnect)
 
-  return { connected, connect, disconnect, sendMove, sendResign }
+  return { connected, connect, disconnect, sendMove, sendResign, sendDrawOffer, sendDrawAccept, sendDrawDecline }
 }

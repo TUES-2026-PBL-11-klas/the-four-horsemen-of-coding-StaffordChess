@@ -145,6 +145,15 @@ async def _handle_message(session, game_id: int, user_id: int, data: dict, webso
         elif msg_type == "sync":
             state = await session.check_time()
             await connection_manager.broadcast(game_id, state)
+        elif msg_type == "draw_offer":
+            state = await session.offer_draw(user_id)
+            await connection_manager.broadcast(game_id, state)
+        elif msg_type == "draw_accept":
+            state = await session.accept_draw(user_id)
+            await connection_manager.broadcast(game_id, state)
+        elif msg_type == "draw_decline":
+            state = await session.decline_draw(user_id)
+            await connection_manager.broadcast(game_id, state)
         else:
             await websocket.send_json({"error": f"Unknown message type: {msg_type}"})
     except HTTPException as e:

@@ -56,9 +56,19 @@
         <button class="btn-action" @click="handleResign" :disabled="gameStore.isGameOver">
           Resign
         </button>
-        <!-- Draw offer not wired on backend yet (engine.request_draw exists
-             but the game WS handler doesn't dispatch it). Disabled for now. -->
-        <button class="btn-action" disabled title="Coming soon">Draw</button>
+        <button class="btn-action" @click="handleDrawOffer"
+          :disabled="gameStore.isGameOver || gameStore.drawOfferedBy != null">
+          {{ gameStore.outgoingDrawOffer ? 'Draw offered…' : 'Draw' }}
+        </button>
+      </div>
+
+      <!-- Incoming draw offer from the opponent -->
+      <div v-if="gameStore.incomingDrawOffer && !gameStore.isGameOver" class="draw-banner">
+        <span class="draw-text">{{ opponent?.username }} offers a draw</span>
+        <div class="draw-actions">
+          <button class="draw-accept" @click="socket.sendDrawAccept()">Accept</button>
+          <button class="draw-decline" @click="socket.sendDrawDecline()">Decline</button>
+        </div>
       </div>
 
       <p v-if="gameStore.error" class="error-banner">{{ gameStore.error }}</p>
@@ -229,6 +239,10 @@ function handleResign() {
   socket.sendResign()
 }
 
+function handleDrawOffer() {
+  socket.sendDrawOffer()
+}
+
 function formatTime(sec) {
   if (sec == null) return '--:--'
   const total = Math.max(0, Math.floor(sec))
@@ -337,6 +351,15 @@ onUnmounted(() => {
 .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .error-banner { width: 100%; max-width: var(--board-side); padding: 0.6rem; background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3); border-radius: 8px; color: #e05252; font-size: 0.85rem; text-align: center; }
+
+.draw-banner { width: 100%; max-width: var(--board-side); display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.7rem 1rem; background: rgba(201,162,39,0.12); border: 1px solid rgba(201,162,39,0.4); border-radius: 8px; }
+.draw-text { font-size: 0.9rem; color: #c9a227; font-weight: 500; }
+.draw-actions { display: flex; gap: 0.5rem; }
+.draw-accept, .draw-decline { padding: 0.4rem 0.9rem; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; }
+.draw-accept { background: #5a9e42; color: #fff; }
+.draw-accept:hover { background: #7cb662; }
+.draw-decline { background: transparent; border: 1px solid #3a3a3a; color: #aaa; }
+.draw-decline:hover { border-color: #e05252; color: #e05252; }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
 .modal { background: #252525; border-radius: 20px; padding: 2.5rem 2rem; width: 90%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }

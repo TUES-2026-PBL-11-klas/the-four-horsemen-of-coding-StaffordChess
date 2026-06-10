@@ -52,6 +52,7 @@ class GameSessionService:
         self.clock = GameClock(initial_seconds, increment_seconds)
         self.is_started = False
         self._finalized = False
+        self.draw_offered_by: int | None = None
 
     async def hydrate_from_history(self, pgn_history: str | None):
         if not pgn_history:
@@ -111,7 +112,6 @@ class GameSessionService:
             detail += promotion
         raise HTTPException(status_code=400, detail=detail)
 
-
     async def handle_incoming_move(self, user_id: int, from_sq: str, to_sq: str,
                                    promotion: str | None = None) -> dict:
         if self.engine.game_result.is_game_over():
@@ -129,6 +129,8 @@ class GameSessionService:
         self.engine.make_move(move)
         self.clock.switch_turn()
 
+        self.draw_offered_by = None
+
         if self.engine.is_checkmate():
             if player_color == Color.WHITE:
                 self.engine.game_result.set_result(GameResult.Result.WHITE_WINS, "checkmate")
@@ -141,6 +143,36 @@ class GameSessionService:
             self.engine.game_result.set_result(GameResult.Result.DRAW, "stalemate")
             await self.end_game(None, "draw")
 
+        return self.get_state()
+
+    async def offer_draw(self, user_id: int) -> dict:
+        if self.engine.game_result.is_game_over():
+            raise HTTPException(status_code=400, detail="Game is already over")
+        self._user_color(user_id)  # validates participant
+        self.draw_offered_by = user_id
+        return self.get_state()
+
+    async def accept_draw(self, user_id: int) -> dict:
+        if self.engine.game_result.is_game_over():
+            raise HTTPException(status_code=400, detail="Game is already over")
+        self._user_color(user_id)
+        if self.draw_offered_by is None:
+            raise HTTPException(status_code=400, detail="No draw offer to accept")
+        if self.draw_offered_by == user_id:
+            raise HTTPException(status_code=400, detail="You cannot accept your own draw offer")
+
+        self.draw_offered_by = None
+        self.engine.game_result.set_result(GameResult.Result.DRAW, "draw by agreement")
+        await self.end_game(None, "draw")
+        return self.get_state()
+
+    async def decline_draw(self, user_id: int) -> dict:
+        self._user_color(user_id)
+        if self.draw_offered_by is None:
+            raise HTTPException(status_code=400, detail="No draw offer to decline")
+        if self.draw_offered_by == user_id:
+            raise HTTPException(status_code=400, detail="You cannot decline your own draw offer")
+        self.draw_offered_by = None
         return self.get_state()
 
     async def check_time(self) -> dict:
@@ -161,6 +193,7 @@ class GameSessionService:
             "is_game_over": self.engine.game_result.is_game_over(),
             "result": self.engine.game_result.result.value,
             "winner_id": self._compute_winner_id(),
+            "draw_offered_by": self.draw_offered_by,
         }
     
     def _compute_winner_id(self) -> int | None:
@@ -185,6 +218,7 @@ class GameSessionService:
         if self._finalized:
             return
         self._finalized = True
+        self.draw_offered_by = None
 
         self.clock.stop()
         game = await self.game_repo.get_by_id(self.game_id)

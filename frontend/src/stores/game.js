@@ -17,6 +17,7 @@ export const useGameStore = defineStore('game', () => {
   const isCheck = ref(false)
   const isGameOver = ref(false)
   const result = ref(null)
+  const drawOfferedBy = ref(null)
 
   const error = ref(null)
 
@@ -36,6 +37,13 @@ export const useGameStore = defineStore('game', () => {
   const opponentTime = computed(() => myColor.value === 'white' ? blackTime.value : whiteTime.value)
   const isMyTurn = computed(() => !isGameOver.value && turn.value === myColor.value)
 
+  const incomingDrawOffer = computed(() =>
+    drawOfferedBy.value != null && drawOfferedBy.value !== auth.user?.id
+  )
+  const outgoingDrawOffer = computed(() =>
+    drawOfferedBy.value != null && drawOfferedBy.value === auth.user?.id
+  )
+
   function setMeta(data) {
     gameId.value = data.id
     whitePlayer.value = data.white_player
@@ -49,7 +57,6 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function setState(s) {
-    console.log('[setState] winner_id from server:', s.winner_id)
     if (s.game_id !== undefined) gameId.value = s.game_id
     if (s.fen !== undefined) fen.value = s.fen
     if (s.turn !== undefined) turn.value = s.turn
@@ -59,6 +66,7 @@ export const useGameStore = defineStore('game', () => {
     if (s.is_game_over !== undefined) isGameOver.value = s.is_game_over
     if (s.result !== undefined) result.value = s.result
     if (s.winner_id !== undefined) winnerId.value = s.winner_id
+    if (s.draw_offered_by !== undefined) drawOfferedBy.value = s.draw_offered_by
   }
 
   function setError(msg) { error.value = msg }
@@ -77,13 +85,15 @@ export const useGameStore = defineStore('game', () => {
     isCheck.value = false
     isGameOver.value = false
     result.value = null
+    drawOfferedBy.value = null
     error.value = null
   }
 
   return {
     gameId, whitePlayer, blackPlayer, timeControl, winnerId,
-    fen, turn, whiteTime, blackTime, isCheck, isGameOver, result, error,
+    fen, turn, whiteTime, blackTime, isCheck, isGameOver, result, drawOfferedBy, error,
     myColor, me, opponent, myTime, opponentTime, isMyTurn,
+    incomingDrawOffer, outgoingDrawOffer,
     setMeta, setState, setError, clearError, reset,
   }
 })
